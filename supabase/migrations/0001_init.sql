@@ -54,6 +54,7 @@ create table if not exists leads (
 );
 create index if not exists leads_stage_idx on leads (stage);
 create index if not exists leads_created_idx on leads (created_at);
+create index if not exists leads_campaign_idx on leads (campaign_id);
 
 -- Konuşmalar (Messenger / Instagram / WhatsApp)
 create table if not exists conversations (
@@ -70,6 +71,7 @@ create table if not exists conversations (
   unique (channel, external_thread_id)
 );
 create index if not exists conversations_last_idx on conversations (last_message_at desc);
+create index if not exists conversations_lead_idx on conversations (lead_id);
 
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),
@@ -96,6 +98,7 @@ create table if not exists subscriptions (
   click_id text,
   started_at timestamptz not null default now()
 );
+create index if not exists subscriptions_lead_idx on subscriptions (lead_id);
 
 -- Senkron kayıtları (hangi kaynak en son ne zaman başarıyla çekildi)
 create table if not exists sync_runs (
@@ -108,7 +111,8 @@ create table if not exists sync_runs (
 );
 
 -- updated_at otomatik
-create or replace function touch_updated_at() returns trigger language plpgsql as $$
+create or replace function touch_updated_at() returns trigger
+language plpgsql set search_path = public as $$
 begin
   new.updated_at = now();
   return new;
@@ -133,12 +137,14 @@ begin
   foreach t in array array['ad_campaigns', 'ad_daily_metrics', 'leads', 'conversations', 'messages', 'subscriptions', 'sync_runs']
   loop
     execute format('drop policy if exists admin_all on %I', t);
-    execute format('create policy admin_all on %I for all to authenticated using (is_admin()) with check (is_admin())', t);
+    execute format('create policy admin_all on %I for all to authenticated using ((select is_admin())) with check ((select is_admin()))', t);
   end loop;
 end $$;
 
 drop policy if exists admin_read_self on app_admins;
-create policy admin_read_self on app_admins for select to authenticated using (is_admin());
+create policy admin_read_self on app_admins for select to authenticated using ((select is_admin()));
+
+revoke execute on function is_admin() from anon;
 
 -- KENDİ E-POSTANI EKLE:
 -- insert into app_admins (email) values ('sen@ornek.com');
