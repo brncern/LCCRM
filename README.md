@@ -23,9 +23,8 @@ npm run dev
    ```sql
    insert into app_admins (email) values ('sen@ornek.com');
    ```
-4. **Authentication → Users → Invite user** ile aynı e-postayı davet et (uygulama yeni hesap açmaz).
-5. **Authentication → URL Configuration**'da Site URL'yi uygulamanın adresine, Redirect URL'lere `https://<adres>/auth/callback` ekle.
-6. `.env.example` dosyasını `.env.local` olarak kopyala ve Supabase değerlerini doldur:
+4. **Authentication → URL Configuration**'da Site URL'yi uygulamanın adresine, Redirect URL'lere `https://<adres>/auth/callback` ekle.
+5. `.env.example` dosyasını `.env.local` olarak kopyala ve Supabase değerlerini doldur:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ALLOWED_EMAILS`, `NEXT_PUBLIC_SITE_URL`.
 
 Supabase ayarlanınca giriş zorunlu olur. Tablolar boşken ekranlar örnek veriyi göstermeye devam eder, veri geldikçe gerçek rakamlar görünür.

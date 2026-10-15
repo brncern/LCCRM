@@ -15,8 +15,9 @@ export function LoginForm() {
     const site = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email,
-      // Yeni hesap açılmaz: kullanıcı Supabase panelinden önceden davet edilmiş olmalı.
-      options: { emailRedirectTo: `${site}/auth/callback`, shouldCreateUser: false },
+      // Erişim ALLOWED_EMAILS (middleware) ve app_admins (RLS) ile kısıtlı; listede olmayan biri
+      // giriş yapsa bile hemen çıkış yaptırılır ve hiçbir veriyi göremez.
+      options: { emailRedirectTo: `${site}/auth/callback` },
     });
     if (error) {
       setState("error");
