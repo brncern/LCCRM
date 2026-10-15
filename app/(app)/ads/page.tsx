@@ -24,6 +24,7 @@ const STATUS = {
   active: { label: "Aktif", cls: "pill--green" },
   limited: { label: "Sınırlı", cls: "pill--orange" },
   paused: { label: "Duraklatıldı", cls: "pill--blue" },
+  removed: { label: "Kaldırıldı", cls: "pill--blue" },
 } as const;
 
 type Advice = { tone: "down" | "warn" | "up"; title: string; text: string };
@@ -31,6 +32,35 @@ type Advice = { tone: "down" | "warn" | "up"; title: string; text: string };
 function advise(campaigns: Campaign[]): Advice[] {
   const out: Advice[] = [];
   const totalSpend = campaigns.reduce((a, c) => a + c.spend, 0);
+  const hasCustomers = campaigns.some((c) => c.customers > 0);
+  if (!hasCustomers) {
+    // Abonelik verisi yokken lead başına maliyete göre öner
+    const big = campaigns.filter((c) => c.spend > totalSpend * 0.05);
+    for (const c of big) {
+      if (c.leads === 0) {
+        out.push({
+          tone: "down",
+          title: `Lead getirmiyor · ${PLATFORM[c.platform].name}`,
+          text: `${c.name} ${RANGE_DAYS} günde ${money(c.spend)} harcadı, hiç lead getirmedi.`,
+        });
+      }
+    }
+    const withLeads = big.filter((c) => c.leads > 0);
+    if (withLeads.length > 1) {
+      const sorted = [...withLeads].sort((a, b) => a.spend / a.leads - b.spend / b.leads);
+      const best = sorted[0]!;
+      const worst = sorted[sorted.length - 1]!;
+      out.push({ tone: "up", title: "En ucuz lead", text: `${best.name}: lead başına ${money(best.spend / best.leads)}.` });
+      if (worst.spend / worst.leads > (best.spend / best.leads) * 2) {
+        out.push({
+          tone: "warn",
+          title: "Pahalı lead",
+          text: `${worst.name}: lead başına ${money(worst.spend / worst.leads)}, en ucuzun ${num(worst.spend / worst.leads / (best.spend / best.leads), 1)} katı.`,
+        });
+      }
+    }
+    return out;
+  }
   for (const c of campaigns) {
     if (c.customers === 0 && c.spend > totalSpend * 0.08) {
       out.push({
@@ -69,6 +99,8 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
     });
 
   const advice = advise(data);
+  const hasCustomers = data.some((c) => c.customers > 0);
+  const platformLeads = data.some((c) => c.leadsFrom === "platform");
 
   return (
     <main className="content">
@@ -99,7 +131,7 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
                 ["Harcama", money(spend)],
                 ["Lead", num(leads)],
                 ["LBM", leads ? money(spend / leads) : "—"],
-                ["Abone", num(customers)],
+                ["Abone", hasCustomers ? num(customers) : "—"],
               ].map(([label, value]) => (
                 <div key={label} className="stack">
                   <span className="kpi-note">{label}</span>
@@ -111,7 +143,15 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
         ))}
       </div>
 
-      <Card title="Kampanyalar" labelledBy="tbl-h">
+      <Card
+        title="Kampanyalar"
+        labelledBy="tbl-h"
+        action={
+          platformLeads ? (
+            <span className="kpi-note">Lead: Meta&apos;nın saydığı (form + mesaj). Abone verisi 4. aşamada gelecek.</span>
+          ) : undefined
+        }
+      >
         <div className="table-wrap">
           <table className="table">
             <thead>
@@ -131,7 +171,7 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
             <tbody>
               {rows.map((c) => {
                 const perCust = c.customers ? c.spend / c.customers : null;
-                const tone = perCust === null ? "tone-down" : perCust < 1500 ? "tone-up" : "";
+                const tone = !hasCustomers ? "" : perCust === null ? "tone-down" : perCust < 1500 ? "tone-up" : "";
                 return (
                   <tr key={c.id}>
                     <td>
@@ -149,7 +189,7 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
                     <td>{c.impressions ? pct(c.clicks / c.impressions, 2) : "—"}</td>
                     <td>{num(c.leads)}</td>
                     <td>{c.leads ? money(c.spend / c.leads) : "—"}</td>
-                    <td>{num(c.customers)}</td>
+                    <td>{hasCustomers ? num(c.customers) : "—"}</td>
                     <td className={tone} style={{ fontWeight: 600 }}>{perCust !== null ? money(perCust) : "—"}</td>
                   </tr>
                 );

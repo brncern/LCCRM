@@ -15,14 +15,17 @@ export default async function OverviewPage() {
   const cpc = o.customers ? o.spend.total / o.customers : null;
   const conv = o.leads ? o.customers / o.leads : null;
 
+  const sp = o.sampleParts;
+  // Huniye sadece gerçek veri olan adımlar girer (örnek veriyle gerçek veriyi karıştırma)
+  const mixed = !sp.ads;
   const steps: FunnelStep[] = [
     { label: "Gösterim", value: o.impressions },
     { label: "Tıklama", value: o.clicks },
-    { label: "Mesaj", value: o.messagesFromAds },
+    ...(mixed && sp.inbox ? [] : [{ label: "Mesaj", value: o.messagesFromAds }]),
     { label: "Lead", value: o.leads },
-    { label: "Nitelikli", value: o.qualified },
-    { label: "Müşteri", value: o.customers },
+    ...(mixed && sp.crm ? [] : [{ label: "Nitelikli", value: o.qualified }, { label: "Abone", value: o.customers }]),
   ];
+  const showCustomers = !(mixed && sp.crm);
   // Mesajdan sonraki adımlar arasında en düşük geçiş oranı = darboğaz
   let worst: { from: string; to: string; rate: number } | null = null;
   for (let i = 3; i < steps.length; i++) {
@@ -43,10 +46,14 @@ export default async function OverviewPage() {
 
       <section aria-label="Temel metrikler" className="grid grid--kpi">
         <Kpi label="Reklam harcaması" value={money(o.spend.total)} note={`Meta ${money(o.spend.meta)} · Google ${money(o.spend.google)}`} />
-        <Kpi label="Lead" value={num(o.leads)} note="CRM'e düşen kişiler" />
+        <Kpi label="Lead" value={num(o.leads)} note={o.leadsFrom === "platform" ? "Meta'nın saydığı (form + mesaj)" : "CRM'e düşen kişiler"} />
         <Kpi label="Lead başına maliyet" value={cpl ? money(cpl, 1) : "—"} />
-        <Kpi label="Yeni ücretli abone" value={num(o.customers)} note={cpc ? `Abone başına ${money(cpc)}` : undefined} />
-        <Kpi label="Lead → abone" value={conv !== null ? pct(conv) : "—"} />
+        <Kpi
+          label="Yeni ücretli abone"
+          value={showCustomers ? num(o.customers) : "—"}
+          note={showCustomers ? (cpc ? `Abone başına ${money(cpc)}` : undefined) : "Ödeme verisi 4. aşamada"}
+        />
+        <Kpi label="Lead → abone" value={showCustomers && conv !== null ? pct(conv) : "—"} />
       </section>
 
       <div className="grid grid--2">
@@ -59,7 +66,7 @@ export default async function OverviewPage() {
           <SpendBars days={o.daily} />
         </Card>
 
-        <Card title="Reklamdan aboneye" labelledBy="funnel-h" action={<span className="kpi-note">adım dönüşümü</span>}>
+        <Card title={showCustomers ? "Reklamdan aboneye" : "Reklamdan lead'e"} labelledBy="funnel-h" action={<span className="kpi-note">adım dönüşümü</span>}>
           <Funnel steps={steps} />
           {worst ? (
             <div className="callout">
@@ -73,7 +80,17 @@ export default async function OverviewPage() {
       </div>
 
       <div className="grid grid--3">
-        <Card title="Yanıt bekleyenler" labelledBy="wait-h" list action={<Link href="/inbox" className="card-link">Tümü</Link>}>
+        <Card
+          title="Yanıt bekleyenler"
+          labelledBy="wait-h"
+          list
+          action={
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <SampleBadge show={sp.inbox && !sp.ads} />
+              <Link href="/inbox" className="card-link">Tümü</Link>
+            </span>
+          }
+        >
           {o.waiting.length === 0 ? <p className="kpi-note">Bekleyen mesaj yok.</p> : null}
           {o.waiting.map((c) => {
             const last = c.messages[c.messages.length - 1]!;
@@ -106,13 +123,29 @@ export default async function OverviewPage() {
                 </span>
               </span>
               <span className="tabular" style={{ fontSize: 15, fontWeight: 600 }}>
-                {num(c.customers)} <span className="kpi-note" style={{ fontWeight: 400 }}>abone</span>
+                {showCustomers ? (
+                  <>
+                    {num(c.customers)} <span className="kpi-note" style={{ fontWeight: 400 }}>abone</span>
+                  </>
+                ) : (
+                  money(c.spend)
+                )}
               </span>
             </div>
           ))}
         </Card>
 
-        <Card title="Sosyal medya" labelledBy="soc-h" list action={<Link href="/social" className="card-link">Detay</Link>}>
+        <Card
+          title="Sosyal medya"
+          labelledBy="soc-h"
+          list
+          action={
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <SampleBadge show={social.sample && !sp.ads} />
+              <Link href="/social" className="card-link">Detay</Link>
+            </span>
+          }
+        >
           {social.data.accounts.map((a) => {
             const gained = a.dailyNewFollowers.reduce((x, y) => x + y, 0);
             return (

@@ -60,6 +60,7 @@ type MetricRow = {
   spend: number | string;
   impressions: number;
   clicks: number;
+  platform_leads: number;
   ad_campaigns: { platform: "meta" | "google"; name: string; status: Campaign["status"] } | null;
 };
 
@@ -68,7 +69,7 @@ async function loadMetricRows(): Promise<MetricRow[] | null> {
   if (!client) return null;
   const { data, error } = await client
     .from("ad_daily_metrics")
-    .select("campaign_id, date, spend, impressions, clicks, ad_campaigns(platform, name, status)")
+    .select("campaign_id, date, spend, impressions, clicks, platform_leads, ad_campaigns(platform, name, status)")
     .gte("date", rangeStart());
   if (error || !data || data.length === 0) return null;
   return data as unknown as MetricRow[];
@@ -111,14 +112,19 @@ export async function getCampaigns(): Promise<Loaded<Campaign[]>> {
         clicks: 0,
         leads: 0,
         customers: 0,
+        platformLeads: 0,
+        leadsFrom: "crm",
       } satisfies Campaign);
     c.spend += Number(r.spend);
     c.impressions += r.impressions;
     c.clicks += r.clicks;
+    c.platformLeads = (c.platformLeads ?? 0) + (r.platform_leads ?? 0);
     map.set(r.campaign_id, c);
   }
 
   // Lead ve müşteri sayıları CRM'deki lead'lerden gelir (reklam platformunun saydığı değil).
+  // CRM'de henüz lead yoksa (gelen kutusu bağlanmadan önce) platformun saydığı lead gösterilir.
+  let crmLeads = 0;
   const client = await db();
   if (client) {
     const { data } = await client
@@ -130,11 +136,18 @@ export async function getCampaigns(): Promise<Loaded<Campaign[]>> {
       const c = map.get(l.campaign_id);
       if (!c) continue;
       c.leads += 1;
+      crmLeads += 1;
       if (l.stage === "customer") c.customers += 1;
     }
   }
+  if (crmLeads === 0) {
+    for (const c of map.values()) {
+      c.leads = c.platformLeads ?? 0;
+      c.leadsFrom = "platform";
+    }
+  }
 
-  return { data: [...map.values()].sort((a, b) => b.leads - a.leads), sample: false };
+  return { data: [...map.values()].sort((a, b) => b.spend - a.spend), sample: false };
 }
 
 /* ------------------------------------------------------------------ */
@@ -276,6 +289,9 @@ export async function getLeadBoard(): Promise<Loaded<LeadBoard>> {
 /* ------------------------------------------------------------------ */
 
 export type Overview = {
+  /** Hangi bölümlerin örnek veri olduğu */
+  sampleParts: { ads: boolean; inbox: boolean; crm: boolean };
+  leadsFrom: "crm" | "platform";
   spend: { total: number; meta: number; google: number };
   leads: number;
   customers: number;
@@ -309,8 +325,10 @@ export async function getOverview(): Promise<Loaded<Overview>> {
     : conversations.data.filter((x) => x.adName).length;
 
   return {
-    sample: daily.sample || campaigns.sample || conversations.sample || board.sample,
+    sample: campaigns.sample,
     data: {
+      sampleParts: { ads: campaigns.sample, inbox: conversations.sample, crm: board.sample },
+      leadsFrom: c.some((x) => x.leadsFrom === "platform") ? "platform" : "crm",
       spend: { total: meta + google, meta, google },
       leads: sum((x) => x.leads),
       customers: sum((x) => x.customers),
@@ -319,7 +337,7 @@ export async function getOverview(): Promise<Loaded<Overview>> {
       impressions: sum((x) => x.impressions),
       clicks: sum((x) => x.clicks),
       daily: daily.data,
-      topCampaigns: [...c].sort((a, b) => b.leads - a.leads).slice(0, 4),
+      topCampaigns: [...c].sort((a, b) => b.spend - a.spend).slice(0, 4),
       waiting: waitingOf(conversations.data).slice(0, 4),
     },
   };

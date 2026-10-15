@@ -20,12 +20,16 @@ export type Campaign = {
   id: string;
   platform: Platform;
   name: string;
-  status: "active" | "limited" | "paused";
+  status: "active" | "limited" | "paused" | "removed";
   spend: number;
   impressions: number;
   clicks: number;
+  /** Ekranda gösterilen lead sayısı: CRM'de lead varsa CRM'den, yoksa reklam platformunun saydığı. */
   leads: number;
   customers: number;
+  /** Reklam platformunun kendi saydığı lead (form + mesaj başlatma) */
+  platformLeads?: number;
+  leadsFrom?: "crm" | "platform";
 };
 
 export type Lead = {

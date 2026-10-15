@@ -6,12 +6,19 @@
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || "v23.0";
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
-/** Meta'nın "lead" saydığı eylemler: form lead'i ve mesajlaşma başlatma. */
-const LEAD_ACTIONS = new Set([
-  "lead",
-  "onsite_conversion.lead_grouped",
-  "onsite_conversion.messaging_conversation_started_7d",
-]);
+/**
+ * Lead sayımı: Meta aynı lead'i hem "lead" hem "onsite_conversion.lead_grouped" altında raporlayabilir,
+ * bu yüzden ikisinden sadece biri alınır ("lead" öncelikli). Mesajlaşma başlatma ayrıca eklenir.
+ */
+function countLeads(actions: Array<{ action_type: string; value: string }> | undefined): number {
+  const get = (t: string) => {
+    const a = actions?.find((x) => x.action_type === t);
+    return a ? Number(a.value || 0) : null;
+  };
+  const leads = get("lead") ?? get("onsite_conversion.lead_grouped") ?? 0;
+  const messaging = get("onsite_conversion.messaging_conversation_started_7d") ?? 0;
+  return leads + messaging;
+}
 
 export type CampaignRow = {
   id: string;
@@ -107,9 +114,7 @@ export async function fetchMeta(days = 30): Promise<{ campaigns: CampaignRow[]; 
     if (!campaigns.has(r.campaign_id)) {
       campaigns.set(r.campaign_id, { id: `meta:${r.campaign_id}`, platform: "meta", external_id: r.campaign_id, name: r.campaign_name, status: "removed" });
     }
-    const leads = (r.actions ?? [])
-      .filter((a) => LEAD_ACTIONS.has(a.action_type))
-      .reduce((sum, a) => sum + Number(a.value || 0), 0);
+    const leads = countLeads(r.actions);
     return {
       campaign_id: `meta:${r.campaign_id}`,
       date: r.date_start,
