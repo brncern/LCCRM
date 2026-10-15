@@ -18,6 +18,16 @@ export async function middleware(request: NextRequest) {
   // Supabase ayarlı değilse: örnek veri modu, giriş yok.
   if (!url || !key) return NextResponse.next();
 
+  // Giriş bağlantısı (Supabase Site URL'ye düşerse) ?code= ile başka bir sayfaya gelebilir:
+  // kodu her zaman giriş dönüş sayfasına yönlendir.
+  const code = request.nextUrl.searchParams.get("code");
+  if (code && !request.nextUrl.pathname.startsWith("/auth/callback")) {
+    const to = request.nextUrl.clone();
+    to.pathname = "/auth/callback";
+    to.search = `?code=${encodeURIComponent(code)}`;
+    return NextResponse.redirect(to);
+  }
+
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
     cookies: {
