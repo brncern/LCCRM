@@ -126,7 +126,7 @@ export async function getCampaigns(): Promise<Loaded<Campaign[]>> {
       .select("campaign_id, stage")
       .gte("created_at", rangeStart())
       .not("campaign_id", "is", null);
-    for (const l of (data ?? []) as Array<{ campaign_id: string; stage: LeadStage }>) {
+    for (const l of (data ?? []) as unknown as Array<{ campaign_id: string; stage: LeadStage }>) {
       const c = map.get(l.campaign_id);
       if (!c) continue;
       c.leads += 1;
