@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 import {
   IconColumns,
+  IconGear,
   IconGrid,
   IconInbox,
   IconMegaphone,
@@ -40,6 +41,10 @@ export function Sidebar({ unread, connections }: { unread: number; connections: 
     {
       title: "Ürün",
       items: [{ href: "/system", label: "Sistem", Icon: IconPulse }],
+    },
+    {
+      title: "Hesap",
+      items: [{ href: "/settings", label: "Ayarlar", Icon: IconGear }],
     },
   ];
 

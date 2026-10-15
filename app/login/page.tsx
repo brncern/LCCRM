@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </span>
           <div className="stack">
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>LawChat CRM</h1>
-            <span className="kpi-note">E-postana bir giriş bağlantısı gönderelim.</span>
+            <span className="kpi-note">E-posta ve şifrenle giriş yap.</span>
           </div>
         </div>
         {e === "yetkisiz" ? (
