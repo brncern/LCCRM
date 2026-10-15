@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Sistem" };
 
 function axisLabels(): [string, string, string] {
-  const f = (d: Date) => d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" });
+  const f = (d: Date) => d.toLocaleDateString("tr-TR", { day: "numeric", month: "short", timeZone: "Europe/Istanbul" });
   const now = new Date();
   const start = new Date(now.getTime() - (RANGE_DAYS - 1) * 86_400_000);
   const mid = new Date(now.getTime() - Math.floor(RANGE_DAYS / 2) * 86_400_000);

@@ -1,4 +1,6 @@
 const LOCALE = "tr-TR";
+/** Sunucu UTC çalışır; tüm saat/tarih gösterimleri İstanbul saatiyle. */
+const TZ = "Europe/Istanbul";
 
 export function money(value: number, fractionDigits = 0): string {
   return (
@@ -32,7 +34,7 @@ export function dayOfMonth(isoDate: string): string {
 }
 
 export function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString(LOCALE, { day: "numeric", month: "short", timeZone: TZ });
 }
 
 export function dateTime(iso: string): string {
@@ -41,11 +43,12 @@ export function dateTime(iso: string): string {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TZ,
   });
 }
 
 export function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit", timeZone: TZ });
 }
 
 /** "12 dk", "1 sa", "Dün", "3 gün" */
@@ -67,5 +70,5 @@ export function waitTone(iso: string, now: Date = new Date()): "neutral" | "warn
 }
 
 export function longToday(now: Date = new Date()): string {
-  return now.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long" });
+  return now.toLocaleDateString(LOCALE, { weekday: "long", day: "numeric", month: "long", timeZone: TZ });
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { SyncButton } from "@/components/sync-button";
 import { Card, PageHead, SampleBadge } from "@/components/ui";
 import { getCampaigns, RANGE_DAYS } from "@/lib/data";
-import { money, num, pct } from "@/lib/format";
+import { dateTime, money, num, pct } from "@/lib/format";
+import { lastSync } from "@/lib/sync";
 import type { Campaign, Platform } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +53,7 @@ function advise(campaigns: Campaign[]): Advice[] {
 }
 
 export default async function AdsPage({ searchParams }: { searchParams: Promise<{ p?: string }> }) {
-  const [{ data, sample }, params] = await Promise.all([getCampaigns(), searchParams]);
+  const [{ data, sample }, params, last] = await Promise.all([getCampaigns(), searchParams, lastSync()]);
   const tab = (TABS.find((t) => t.id === params.p)?.id ?? "all") as Platform | "all";
   const rows = data.filter((c) => tab === "all" || c.platform === tab);
 
@@ -72,6 +74,7 @@ export default async function AdsPage({ searchParams }: { searchParams: Promise<
     <main className="content">
       <PageHead eyebrow={`Son ${RANGE_DAYS} gün`} title="Reklamlar">
         <SampleBadge show={sample} />
+        <SyncButton lastLabel={last?.ok ? dateTime(last.finishedAt) : null} />
         <nav aria-label="Platform" className="segmented">
           {TABS.map((t) => (
             <Link key={t.id} href={t.id === "all" ? "/ads" : `/ads?p=${t.id}`} aria-current={t.id === tab ? "page" : undefined}>

@@ -23,11 +23,13 @@ Dönüşüm tanımı: **ücretli abone** (kayıt değil, avukata yönlendirme de
 
 ## Yol haritası
 1. [x] Temel: tasarım sistemi, 6 ekran, şema, giriş
-2. [ ] Reklamlar: Meta Marketing API + Google Ads API → `ad_campaigns`, `ad_daily_metrics`; Vercel Cron ile saatlik senkron, `sync_runs`'a kayıt
+2. [~] Reklamlar: Meta senkronu yazıldı (`lib/sync/meta.ts`, `/api/cron/sync`, "Şimdi güncelle" düğmesi). Vercel Hobby planında cron günde 1 kez (06:00 İstanbul). Google Ads bekliyor (developer token).
 3. [ ] Gelen kutusu: Meta webhook'ları (Messenger, Instagram), WhatsApp Cloud API → `conversations`, `messages`; reklam id'sinden kampanya eşleme; buradan yanıt gönderme
 4. [ ] Dönüşüm: ödeme sağlayıcısından `subscriptions`; UTM / click id ile lead ve kampanyaya bağlama
 5. [ ] Sosyal medya (Meta sayfa/IG içgörüleri, LinkedIn) ve Grafana API
 
 ## Notlar
+- Yayın: Vercel projesi `lccrm` (ekip law-chat), adres https://lccrm-law-chat.vercel.app. Supabase projesi `degrnyqtbwdzzpvhwzxj` (eu-west-2).
+- Kullanıcı teknik değil: terminal/komut isteme, adımları tıklama düzeyinde anlat.
 - 1. aşama npm erişimi olmayan bir ortamda yazıldı; ilk `npm install && npm run build` burada yapılmalı ve çıkan hatalar düzeltilmeli.
 - Onaylanan tasarım bir Claude Design tuvalinde (macOS / iOS 27 sayfası); ekranlar ona birebir uymalı.

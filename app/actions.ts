@@ -21,6 +21,20 @@ export async function updateLeadStage(leadId: string, stage: LeadStage): Promise
   return { ok: true };
 }
 
+/** "Şimdi güncelle" düğmesi: reklam verisini hemen çeker. Giriş kontrolünü middleware yapar. */
+export async function syncNow(): Promise<{ ok: boolean; message: string }> {
+  const { syncAll } = await import("@/lib/sync");
+  const results = await syncAll();
+  if (results.length === 0) return { ok: false, message: "Bağlı reklam kaynağı yok (erişim anahtarı eksik)." };
+  revalidatePath("/", "layout");
+  const failed = results.filter((r) => !r.ok);
+  if (failed.length) return { ok: false, message: failed.map((r) => `${r.source}: ${r.error}`).join(" · ") };
+  return {
+    ok: true,
+    message: results.map((r) => `${r.source === "meta" ? "Meta" : r.source}: ${r.campaigns} kampanya, ${r.days} gün`).join(" · "),
+  };
+}
+
 export async function markConversationRead(conversationId: string): Promise<ActionResult> {
   if (!supabaseConfigured()) return { ok: true };
   const client = await supabaseServer();

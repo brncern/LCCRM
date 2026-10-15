@@ -1,7 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth"];
+// /api/cron kendi gizli anahtarıyla korunur (CRON_SECRET).
+const PUBLIC_PATHS = ["/login", "/auth", "/api/cron"];
 
 function allowed(email: string | undefined): boolean {
   const list = (process.env.ALLOWED_EMAILS ?? "")
